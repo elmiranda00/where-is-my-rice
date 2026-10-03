@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Secrets
+.env
+*.json.key
+*-key.json
+
+# Data and outputs
+outputs/
+data/raw/
+*.tif
+*.pmtiles
+*.joblib
+
+# Terraform
+infra/.terraform/
+infra/*.tfstate*
+infra/*.tfvars
+!infra/terraform.tfvars.example
+
+# Kept local for now
+.claude/
+notebooks/

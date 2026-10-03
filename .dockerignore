@@ -1,0 +1,11 @@
+.git
+.venv
+.env
+.claude
+outputs
+data
+notebooks
+infra
+web
+tests
+**/__pycache__

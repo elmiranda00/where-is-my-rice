@@ -1,0 +1,30 @@
+name: mekong-2020
+
+aoi:
+  bbox: [104.4, 8.5, 106.9, 11.1]   # lon/lat envelope of the Mekong Delta
+  crs: EPSG:32648                     # UTM 48N
+
+time:
+  start: "2020-01-01"
+  end: "2020-12-31"
+  composite_days: 12
+
+tiling:
+  tile_size_m: 10000
+  resolution_m: 10
+
+features:
+  speckle_window: 9
+
+model:
+  param_grid:
+    C: [0.1, 1, 10, 100]
+    gamma: [scale, 0.01, 0.1, 1]
+  cv_folds: 5
+  cv_block_size_m: 2000
+
+stac:
+  url: https://planetarycomputer.microsoft.com/api/stac/v1
+  collection: sentinel-1-rtc
+
+labels: data/labels/crop_locations.csv
