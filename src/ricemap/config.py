@@ -1,14 +1,14 @@
+"""Load config/mekong.yaml into frozen, typed dataclasses for downstream Python modules"""
+
+
 from dataclasses import dataclass
 from pathlib import Path
-
 import yaml
-
 
 @dataclass(frozen=True)
 class AOI:
     bbox: tuple[float, float, float, float]
     crs: str
-
 
 @dataclass(frozen=True)
 class TimeRange:
@@ -16,19 +16,16 @@ class TimeRange:
     end: str
     composite_days: int
 
-
 @dataclass(frozen=True)
 class Tiling:
     tile_size_m: int
     resolution_m: int
-
 
 @dataclass(frozen=True)
 class Model:
     param_grid: dict
     cv_folds: int
     cv_block_size_m: int
-
 
 @dataclass(frozen=True)
 class Stac:
@@ -46,7 +43,6 @@ class Config:
     model: Model
     stac: Stac
     labels: Path
-
 
 def load_config(path: str | Path) -> Config:
     raw = yaml.safe_load(Path(path).read_text())
