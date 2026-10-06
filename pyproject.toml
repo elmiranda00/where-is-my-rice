@@ -17,7 +17,7 @@ dependencies = [
     "pyproj",
     "pystac-client",
     "planetary-computer",
-    "stackstac",
+    "odc-stac",
     "fsspec",
     "gcsfs",
     "pyyaml",

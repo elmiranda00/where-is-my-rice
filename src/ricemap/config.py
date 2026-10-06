@@ -26,6 +26,7 @@ class Model:
     param_grid: dict
     cv_folds: int
     cv_block_size_m: int
+    cv_site_gap_m: int
 
 @dataclass(frozen=True)
 class Stac:

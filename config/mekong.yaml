@@ -21,7 +21,8 @@ model:
     C: [0.1, 1, 10, 100]
     gamma: [scale, 0.01, 0.1, 1]
   cv_folds: 5
-  cv_block_size_m: 2000
+  cv_block_size_m: 2000 # inner cross validation (tuning C, gamma) : points grouped into 2 km blocks
+  cv_site_gap_m: 3000 # outer cross validaation (to report scores) : points closer than 3km apart form one site
 
 stac:
   url: https://planetarycomputer.microsoft.com/api/stac/v1

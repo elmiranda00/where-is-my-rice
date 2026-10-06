@@ -24,6 +24,7 @@ infra/*.tfstate*
 infra/*.tfvars
 !infra/terraform.tfvars.example
 
-# Kept local for now
+# Kept local
 .claude/
 notebooks/
+CLAUDE.md

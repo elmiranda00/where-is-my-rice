@@ -74,9 +74,18 @@ def load_stack(
     return ds.to_dataarray("band").transpose("time", "band", "y", "x")
 
 
+def bounds_to_geojson(bounds: tuple[float, float, float, float], crs: str) -> dict:
+    """GeoJSON polygon in lon/lat for UTM bounds, for STAC searches."""
+    to_lonlat = Transformer.from_crs(crs, "EPSG:4326", always_xy=True)
+    minx, miny, maxx, maxy = bounds
+    corners = [(minx, miny), (maxx, miny), (maxx, maxy), (minx, maxy), (minx, miny)]
+    ring = [list(to_lonlat.transform(x, y)) for x, y in corners]
+    return {"type": "Polygon", "coordinates": [ring]}
+
+
 def get_sentinel_data(latlong: str, cfg: Config, window_size: int | None = None) -> xr.DataArray:
     """Main fetch function.
-    Gets Sentinel-1 VH/VV patch around a point, one slice per scene in cfg.time.
+    Gets Sentinel-1 VH/VV stack around a point, one slice per scene in cfg.time.
     Nothing is downloaded until .compute() is called on the result.
     """
     lat, lon = parse_latlong(latlong)
@@ -89,5 +98,15 @@ def get_sentinel_data(latlong: str, cfg: Config, window_size: int | None = None)
         raise LookupError(
             f"No Sentinel-1 scenes found for {latlong} in {cfg.time.start}..{cfg.time.end}"
             )
+    
+    return load_stack(items, bounds, cfg.aoi.crs, cfg.tiling.resolution_m)
+
+def get_sentinel_area(bounds: tuple[int, int, int, int], cfg: Config) -> xr.DataArray:
+    """Sentinel-1 VH/VV stack for a tile/group of points specified by UTM bounds
+    Nothing is downloaded until .compute() is called on the result.
+    """
+    items = search_items(cfg.stac, bounds_to_geojson(bounds, cfg.aoi.crs), cfg.time)
+    if len(items) == 0:
+        raise LookupError(f"No Sentinel-1 scenes found for bounds {bounds}")
     
     return load_stack(items, bounds, cfg.aoi.crs, cfg.tiling.resolution_m)
