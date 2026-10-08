@@ -3,10 +3,10 @@
 
 import math
 
+import odc.stac
 import planetary_computer
 import pystac_client
 import xarray as xr
-import odc.stac
 from odc.geo.geobox import GeoBox
 from pyproj import Transformer
 
