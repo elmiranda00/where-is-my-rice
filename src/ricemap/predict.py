@@ -39,7 +39,7 @@ def classify(feats: xr.DataArray, bundle: dict) -> xr.DataArray:
     # Put the features in the same order that the model used during training.
     names = bundle["features"]
     cube = feats.sel(feature=names).transpose("y", "x", "feature").values
-    # Make a table: one row for each pixel, one column for each feature.
+    # Make a table: one row for each pixel within the tile, one column for each feature.
     flat = cube.reshape(-1, len(names))
     # Find the pixels that have all features. Do not predict the other pixels.
     valid = np.isfinite(flat).all(axis=1)

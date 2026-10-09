@@ -6,16 +6,20 @@ import fsspec
 
 
 def uri(*parts: str) -> str:
+    # Make a path from the STORAGE_URI variable and the given parts.
+    # If STORAGE_URI is not set, use ./outputs.
     base = os.environ.get("STORAGE_URI", "./outputs").rstrip("/")
     return "/".join([base, *parts])
 
 
 def exists(path: str) -> bool:
+    # Return True if a file exists at the path. The path is local or gs://.
     fs, fs_path = fsspec.core.url_to_fs(path)
     return fs.exists(fs_path)
 
 
 def open_file(path: str, mode: str = "rb") -> IO:
+    # Open a file for read or write. In write mode, make the parent folders first.
     fs, fs_path = fsspec.core.url_to_fs(path)
     if "w" in mode:
         fs.makedirs(posixpath.dirname(fs_path), exist_ok=True)
@@ -23,6 +27,7 @@ def open_file(path: str, mode: str = "rb") -> IO:
 
 
 def upload(local_path: str, dest: str) -> None:
+    # Copy a local file to the destination. Make the parent folders first.
     fs, fs_path = fsspec.core.url_to_fs(dest)
     fs.makedirs(posixpath.dirname(fs_path), exist_ok=True)
     fs.put_file(local_path, fs_path)

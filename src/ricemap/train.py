@@ -77,7 +77,7 @@ def build_training_table(cfg: Config) -> pd.DataFrame:
             math.floor(pts["y"].max() / res) * res + res + pad,
         )
         print(f"{tile_id}: {len(pts)} points", flush=True)
-        feats = compute_features(get_sentinel_area(bounds, cfg), cfg) # returns (feature, y, x)
+        feats = compute_features(get_sentinel_area(bounds, cfg), cfg) # returns (feature_name, y, x)
         # 3. Read the features of the pixel under each point. Add them to the point rows.
         at_points = feats.sel(
             x=xr.DataArray(pts["x"].to_numpy(), dims="point"),
