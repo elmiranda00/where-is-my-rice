@@ -5,7 +5,7 @@ WORKDIR /app
 
 # System library needed by rasterio
 RUN apt-get update \
-    && apt-get install - --no-install-recommends libexpat1 \
+    && apt-get install -y --no-install-recommends libexpat1 \
     && rm -rf /var/lib/apt/lists/*
 
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy

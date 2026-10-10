@@ -1,0 +1,7 @@
+# Sample terraform.tfvars
+
+project_id      = "your-project-id"
+billing_account = "XXXXXX-XXXXXX-XXXXXX" # get by running gcloud billing acounts list > ACCOUNT_ID
+budget_amount   = 50
+
+
