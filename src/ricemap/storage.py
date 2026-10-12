@@ -31,3 +31,9 @@ def upload(local_path: str, dest: str) -> None:
     fs, fs_path = fsspec.core.url_to_fs(dest)
     fs.makedirs(posixpath.dirname(fs_path), exist_ok=True)
     fs.put_file(local_path, fs_path)
+
+def list_files(pattern: str) -> list[str]:
+    # Return the full paths that match the pattern, for example uri("tiles", "*.tif").
+    fs, fs_path = fsspec.core.url_to_fs(pattern)
+    return sorted(fs.unstrip_protocol(p) for p in fs.glob(fs_path))
+

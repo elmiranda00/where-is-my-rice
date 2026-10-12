@@ -83,3 +83,41 @@ resource "google_billing_budget" "budget" {
 
   depends_on = [google_project_service.apis]
 }
+
+# Cloud Run Job: 
+#runs `ricemap predict-tile`. With no --tile-id, each task picks its tile from CLOUD_RUN_TASK_INDEX.
+resource "google_cloud_run_v2_job" "predict" {
+  name                = "ricemap-predict"
+  location            = var.region
+  deletion_protection = false
+
+  template {
+    task_count  = 840 # set to 1 for a test run, 840 for the full run
+    parallelism = 10 # set to 14 for the full run (GCP trial memory quota 42 GB / 3 GiB)
+
+    template {
+      service_account = google_service_account.job.email
+      max_retries     = 1
+      timeout         = "1800s"
+
+      containers {
+        image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.images.repository_id}/ricemap:${var.image_tag}"
+        args  = ["predict-tile"]
+
+        env {
+          name  = "STORAGE_URI"
+          value = "gs://${google_storage_bucket.outputs.name}"
+        }
+
+        resources {
+          limits = {
+            cpu    = "1"
+            memory = "3Gi"
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [google_project_service.apis]
+}

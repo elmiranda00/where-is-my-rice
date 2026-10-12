@@ -21,3 +21,9 @@ variable "budget_amount" {
   type        = number
   default     = 50
 }
+
+variable "image_tag" {
+  description = "Tag of the ricemap image in Artifact Registry"
+  type        = string
+  default     = "v2"
+}
