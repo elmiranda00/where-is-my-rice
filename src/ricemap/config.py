@@ -38,6 +38,8 @@ class Stac:
 @dataclass(frozen=True)
 class Publish:
     rice_colour: tuple[int, int, int]
+    provinces: Path
+    reference: Path
 
 @dataclass(frozen=True)
 class Config:
@@ -62,7 +64,10 @@ def load_config(path: str | Path) -> Config:
         model=Model(**raw["model"]),
         stac=Stac(**raw["stac"]),
         labels=Path(raw["labels"]),
-        publish=Publish(rice_colour=tuple(raw["publish"]["rice_colour"])),
+        publish=Publish(
+            rice_colour=tuple(raw["publish"]["rice_colour"]),
+            provinces=Path(raw["publish"]["provinces"]),
+            reference=Path(raw["publish"]["reference"]))
 
     )
 

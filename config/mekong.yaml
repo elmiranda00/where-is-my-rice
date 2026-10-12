@@ -31,4 +31,6 @@ stac:
 labels: data/labels/crop_locations.csv
 
 publish:
-    rice_colour: [34, 160, 60]   # RGB of rice pixels on the web map
+  rice_colour: [34, 160, 60]   # RGB of rice pixels on the web map
+  provinces: data/raw/gadm41_VNM_1.json  # GADM 4.1 level 1 data to mark province outlines and calcualte detected rice area
+  reference: data/reference/rice_land_2022.csv     # rice land per province, in ha, from an external report
