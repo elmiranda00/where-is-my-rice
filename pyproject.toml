@@ -23,6 +23,7 @@ dependencies = [
     "pyyaml",
     "python-dotenv",
     "typer",
+    "pmtiles>=3.8.1",
 ]
 
 [project.scripts]

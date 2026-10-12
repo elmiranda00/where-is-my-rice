@@ -35,6 +35,9 @@ class Stac:
     url: str
     collection: str
 
+@dataclass(frozen=True)
+class Publish:
+    rice_colour: tuple[int, int, int]
 
 @dataclass(frozen=True)
 class Config:
@@ -46,6 +49,7 @@ class Config:
     model: Model
     stac: Stac
     labels: Path
+    publish: Publish
 
 def load_config(path: str | Path) -> Config:
     raw = yaml.safe_load(Path(path).read_text())
@@ -58,4 +62,7 @@ def load_config(path: str | Path) -> Config:
         model=Model(**raw["model"]),
         stac=Stac(**raw["stac"]),
         labels=Path(raw["labels"]),
+        publish=Publish(rice_colour=tuple(raw["publish"]["rice_colour"])),
+
     )
+

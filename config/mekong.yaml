@@ -29,3 +29,6 @@ stac:
   collection: sentinel-1-rtc
 
 labels: data/labels/crop_locations.csv
+
+publish:
+    rice_colour: [34, 160, 60]   # RGB of rice pixels on the web map
