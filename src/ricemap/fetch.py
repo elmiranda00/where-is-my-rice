@@ -60,6 +60,15 @@ def search_items(stac: Stac, geometry: dict, time: TimeRange):
     )
     return search.item_collection()
 
+def mask_nodata(da: xr.DataArray, nodata: float | None) -> xr.DataArray:
+    """
+    Replace the fill value for areas outside a scene with NaN 
+
+    Planetary Computer fills areas outside each scene with nodata (-32768), not NaN.
+    This distorts medians and other statistics.
+    """
+    return da if nodata is None else da.where(da != nodata)
+
 
 def load_stack(
     items, bounds: tuple[int, int, int, int], crs: str, resolution: int
@@ -71,7 +80,9 @@ def load_stack(
     # Take the grid above and pin it to the pixels. chunk{} => keeps load lazy
     ds = odc.stac.load(items, bands=["vh", "vv"], geobox=geobox, chunks={}, dtype="float32")
     
-    return ds.to_dataarray("band").transpose("time", "band", "y", "x")
+    da = ds.to_dataarray("band").transpose("time", "band", "y", "x")
+    # Planetary Computer fills areas outside each scene with nodata (-32768), not NaN.
+    return mask_nodata(da, ds["vv"].attrs.get("nodata"))
 
 
 def bounds_to_geojson(bounds: tuple[float, float, float, float], crs: str) -> dict:

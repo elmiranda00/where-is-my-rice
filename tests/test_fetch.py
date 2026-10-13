@@ -1,7 +1,9 @@
 import pytest
 from pyproj import Transformer
+import numpy as np
+import xarray as xr
 
-from ricemap.fetch import parse_latlong, point_window
+from ricemap.fetch import parse_latlong, point_window, mask_nodata
 
 LATLONG = "(10.323727047081501, 105.2516346045924)"
 
@@ -31,3 +33,12 @@ def test_point_window_is_a_pixel_aligned_square_around_the_point():
 def test_point_window_needs_an_odd_size():
     with pytest.raises(ValueError):
         point_window(10.3, 105.2, "EPSG:32648", resolution=10, window_size=8)
+
+
+def test_mask_nodata_turns_the_fill_value_into_nan():
+    da = xr.DataArray(np.array([0.2, -32768.0, 0.05], dtype="float32"))
+    out = mask_nodata(da, -32768)
+    assert np.isnan(out.values[1])
+    assert np.allclose(out.values[[0, 2]], [0.2, 0.05])
+    assert mask_nodata(da, None) is da
+

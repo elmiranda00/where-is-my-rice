@@ -170,18 +170,24 @@ def province_stats(cfg: Config) -> str:
 
     ref = load_reference(cfg)
     # Rice land counts each field once: single + double + triple. Empty cells count as 0.
+    # Update: Rice-shrimp land is left out of the comparison.
     ref["ref_rice_ha"] = ref[RICE_COLUMNS].sum(axis=1)
-    ref["ref_rice_with_shrimp_ha"] = ref["ref_rice_ha"] + ref["rice_shrimp_ha"].fillna(0)
+    ref = ref.drop(columns="rice_shrimp_ha")
     out = ref.merge(pd.DataFrame(rows), on="key").drop(columns="key")
 
     total = out.sum(numeric_only=True)
     total["province"] = "Mekong Delta (total)"
     out = pd.concat([out, total.to_frame().T], ignore_index=True)
 
-    # Share of the province that the map covers (less than 1 where islands are outside the grid).
+    # Calculate Share of the province that the map covers (will be <1 where islands are outside the grid).
     out["coverage"] = out["mapped_ha"] / out["province_ha"]
-    out["map_vs_ref"] = out["rice_map_ha"] / out["ref_rice_ha"]
-    out["map_vs_ref_with_shrimp"] = out["rice_map_ha"] / out["ref_rice_with_shrimp_ha"]
+    
+    #out["map_vs_ref"] = out["rice_map_ha"] / out["ref_rice_ha"]
+    #out["map_vs_ref_with_shrimp"] = out["rice_map_ha"] / out["ref_rice_with_shrimp_ha"]
+    
+    # Calculate Map vs reference in percent: negative means the map finds less rice than the report.
+    out["diff_pct"] = (out["rice_map_ha"] / out["ref_rice_ha"] - 1) * 100
+
 
     with storage.open_file(dest, "wb") as f:
         out.round(3).to_csv(f, index=False, encoding="utf-8")

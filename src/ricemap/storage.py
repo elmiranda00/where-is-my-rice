@@ -1,3 +1,9 @@
+"""
+Functions to read and write files for the whole project
+Flexible between local disk or in Google Cloud Storage, based on the environment variable
+    STORAGE_URI which sets the root folder (default: ./outputs).
+"""
+
 import os
 import posixpath
 from typing import IO
