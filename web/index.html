@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>where-is-my-rice</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    #map { position: absolute; inset: 0; }
+    #panel {
+      position: absolute; top: 12px; left: 12px; z-index: 1; max-width: 260px;
+      background: rgba(255, 255, 255, 0.92); padding: 12px 14px; border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); font-size: 13px; line-height: 1.4;
+    }
+    #panel h1 { font-size: 16px; margin: 0; }
+    #panel .sub { font-size: 12px; color: #666; margin: 0 0 8px; }
+    #panel p { margin: 0 0 8px; color: #444; }
+    .swatch { display: inline-block; width: 12px; height: 12px; background: rgb(34, 160, 60);
+              vertical-align: middle; margin-right: 6px; }
+    .note { font-size: 11px; color: #666; margin: 2px 0 0 18px; }
+    label { display: block; margin-top: 6px; }
+    input[type=range] { width: 100%; }
+  </style>
+</head>
+<body>
+<div id="map"></div>
+<div id="panel">
+  <h1>Where is the rice?</h1>
+  <p class="sub">Mekong Delta, Vietnam · 2020</p>
+  <p>Rice fields detected from Sentinel-1 radar by an SVM classification model,
+     mapped at 10 m resolution.</p>
+  <div><span class="swatch"></span>Rice field</div>
+  <div class="note">All rice cropping systems in one class: the map does not
+     distinguish single, double or triple cropping.</div>
+  <label>Basemap
+    <select id="basemap">
+      <option value="streets">Streets</option>
+      <option value="satellite">Satellite</option>
+    </select>
+  </label>
+  <label>Rice layer opacity
+    <input id="opacity" type="range" min="0" max="1" step="0.05" value="0.85">
+  </label>
+</div>
+
+<script>
+  // PMTiles plugin: lets MapLibre read tiles straight out of one file with HTTP range requests.
+  const protocol = new pmtiles.Protocol();
+  maplibregl.addProtocol("pmtiles", protocol.tile);
+  const riceUrl = "pmtiles://" + new URL("rice.pmtiles", location.href).href;
+
+  const map = new maplibregl.Map({
+    container: "map",
+    style: "https://tiles.openfreemap.org/styles/positron",  // free, no API key
+    center: [105.7, 9.9],
+    zoom: 7.5,
+  });
+  map.addControl(new maplibregl.NavigationControl(), "top-right");
+  map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-right");
+
+  map.on("load", () => {
+    // Satellite basemap, hidden until chosen in the panel.
+    map.addSource("satellite", {
+      type: "raster", tileSize: 256,
+      tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+      attribution: "Imagery © Esri, Maxar, Earthstar Geographics",
+    });
+    map.addLayer({ id: "satellite", type: "raster", source: "satellite",
+                   layout: { visibility: "none" } });
+
+    // The rice map. Nearest resampling keeps the 10 m pixels sharp when zoomed in.
+    map.addSource("rice", {
+      type: "raster", url: riceUrl, tileSize: 256,
+      attribution: "Rice map: Elrich Miranda · Contains Copernicus Sentinel data 2020",
+    });
+    map.addLayer({ id: "rice", type: "raster", source: "rice",
+                   paint: { "raster-opacity": 0.85, "raster-resampling": "nearest" } });
+  });
+
+  document.getElementById("opacity").addEventListener("input", (e) =>
+    map.setPaintProperty("rice", "raster-opacity", Number(e.target.value)));
+
+  document.getElementById("basemap").addEventListener("change", (e) =>
+    map.setLayoutProperty("satellite", "visibility",
+                          e.target.value === "satellite" ? "visible" : "none"));
+</script>
+</body>
+</html>

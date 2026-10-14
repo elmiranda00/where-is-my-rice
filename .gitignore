@@ -16,6 +16,7 @@ outputs/
 data/raw/
 *.tif
 *.pmtiles
+!web/rice.pmtiles
 *.joblib
 
 # Terraform
