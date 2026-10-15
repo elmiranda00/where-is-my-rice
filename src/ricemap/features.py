@@ -13,6 +13,7 @@ BANDS = ["vv", "vh", "vh_vv_ratio", "rvi"]
 STATS = ["mean", "std", "min", "max", "range"]
 FEATURES = [f"{band}_{stat}" for band in BANDS for stat in STATS]
 
+
 def speckle_filter(da: xr.DataArray, window: int) -> xr.DataArray:
     """Median-filter every scene and band over a window x window pixel neighbourhood.
 

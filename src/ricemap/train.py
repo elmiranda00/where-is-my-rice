@@ -1,6 +1,6 @@
 """
 build the SVM pipeline with spatial cross-validation
-""" 
+"""
 
 import json
 import math
@@ -37,24 +37,25 @@ METRICS_PATH = ("model", "cv_metrics.json")
 # Build Feature Table
 # -------------------------------------------------------------------
 
+
 def load_labels(cfg: Config) -> pd.DataFrame:
     """Read the labelled points: lat/lon, UTM x/y, and label (1 = rice, 0 = non-rice)."""
-    
+
     df = pd.read_csv(cfg.labels)
     latlon = df["Latitude and Longitude"].map(parse_latlong)
-    
+
     out = pd.DataFrame({"lat": [p[0] for p in latlon], "lon": [p[1] for p in latlon]})
     to_utm = Transformer.from_crs("EPSG:4326", cfg.aoi.crs, always_xy=True)
     out["x"], out["y"] = to_utm.transform(out["lon"].to_numpy(), out["lat"].to_numpy())
     out["label"] = (df["Class of Land"] == "Rice").astype(int)
-    
-    return out # returns a DataFrame with [lat, lon, x, y , label] where label = 1 / 0
+
+    return out  # returns a DataFrame with [lat, lon, x, y , label] where label = 1 / 0
 
 
 def build_training_table(cfg: Config) -> pd.DataFrame:
     """
-    Build the feature row for each labelled point. Points are grouped by tile. 
-    Each group loads one window around its points (plus the speckle buffer), 
+    Build the feature row for each labelled point. Points are grouped by tile.
+    Each group loads one window around its points (plus the speckle buffer),
     runs the same compute_features as prediction, and reads the pixel under each point.
     """
     # 1. Put each point in a tile. One download then serves all the points in that tile.
@@ -77,7 +78,9 @@ def build_training_table(cfg: Config) -> pd.DataFrame:
             math.floor(pts["y"].max() / res) * res + res + pad,
         )
         print(f"{tile_id}: {len(pts)} points", flush=True)
-        feats = compute_features(get_sentinel_area(bounds, cfg), cfg) # returns (feature_name, y, x)
+        feats = compute_features(
+            get_sentinel_area(bounds, cfg), cfg
+        )  # returns (feature_name, y, x)
         # 3. Read the features of the pixel under each point. Add them to the point rows.
         at_points = feats.sel(
             x=xr.DataArray(pts["x"].to_numpy(), dims="point"),
@@ -86,16 +89,18 @@ def build_training_table(cfg: Config) -> pd.DataFrame:
         )
         values = pd.DataFrame(at_points.transpose("point", "feature").values, columns=FEATURES)
         parts.append(pd.concat([pts.reset_index(drop=True), values], axis=1))
-    
+
     return pd.concat(parts, ignore_index=True)
 
 
 # Spatial CV and Training
 # ---------------------------------------------------------------
 
+
 def site_groups(x: np.ndarray, y: np.ndarray, gap_m: float) -> np.ndarray:
     """
-    Assign Site ID per (x,y) point: points are grouped to the same site if gap between them is less then gap_m
+    Assign Site ID per (x,y) point:
+        points are grouped to the same site if gap between them is less then gap_m
 
     Returns:
         np.ndarray of ints, one per input point (same order as x, y). Points sharing a value
@@ -119,8 +124,7 @@ def block_groups(x: np.ndarray, y: np.ndarray, block_m: float) -> np.ndarray:
 def make_search(cfg: Config) -> GridSearchCV:
     """Scaled RBF SVM, tuned over the YAML param_grid with block-grouped CV."""
     # Classification pipeline: scale features with RobustScaler(), then an RBF-kernel SVM
-    pipe = Pipeline([("scaler", RobustScaler()),
-                     ("classifier", SVC(kernel="rbf"))])
+    pipe = Pipeline([("scaler", RobustScaler()), ("classifier", SVC(kernel="rbf"))])
     # Prefix each YAML param_grid key with "classifier__" so it targets the SVC step
     grid = {f"classifier__{name}": values for name, values in cfg.model.param_grid.items()}
 
@@ -148,7 +152,8 @@ def cross_validate_spatial(table: pd.DataFrame, cfg: Config) -> dict:
     for train_idx, test_idx in outer.split(X, y, groups=sites):
         if len(np.unique(y[train_idx])) < 2:
             raise ValueError("A training fold has only one class; add sites or lower cv_folds")
-        # Inner CV : re-tune C/gamma from scratch using only this fold's training sites, grouped by block so nearby points don't leak across train/test
+        # Inner CV : re-tune C/gamma from scratch using only this fold's training sites,
+        # grouped by block so nearby points don't leak across train/test
         search = make_search(cfg).fit(X.iloc[train_idx], y[train_idx], groups=blocks[train_idx])
         pred[test_idx] = search.predict(X.iloc[test_idx])
         # decision_function -> gives a continuous score (signed distance from the boundary),
@@ -188,19 +193,23 @@ def fit_final(table: pd.DataFrame, cfg: Config) -> tuple[Pipeline, dict]:
 # Storage
 # -----------------------------------------------------------------------------------
 
+
 def save_table(table: pd.DataFrame) -> None:
     with storage.open_file(storage.uri(*TABLE_PATH), "wb") as f:
         f.write(table.to_csv(index=False).encode())
 
+
 def load_table() -> pd.DataFrame:
     with storage.open_file(storage.uri(*TABLE_PATH), "rb") as f:
         return pd.read_csv(f)
+
 
 def save_model(model: Pipeline, metrics: dict) -> None:
     with storage.open_file(storage.uri(*MODEL_PATH), "wb") as f:
         joblib.dump({"model": model, "features": FEATURES}, f)
     with storage.open_file(storage.uri(*METRICS_PATH), "wb") as f:
         f.write(json.dumps(metrics, indent=2).encode())
+
 
 def run_training(cfg: Config, rebuild_table: bool = False) -> dict:
     """Build (or reuse) the training table, cross-validate, fit the final model and save it."""

@@ -1,4 +1,3 @@
-
 """Search and Load Planetary Computer's STAC catalog for Sentinel-1 RTC scenes"""
 
 import math
@@ -60,9 +59,10 @@ def search_items(stac: Stac, geometry: dict, time: TimeRange):
     )
     return search.item_collection()
 
+
 def mask_nodata(da: xr.DataArray, nodata: float | None) -> xr.DataArray:
     """
-    Replace the fill value for areas outside a scene with NaN 
+    Replace the fill value for areas outside a scene with NaN
 
     Planetary Computer fills areas outside each scene with nodata (-32768), not NaN.
     This distorts medians and other statistics.
@@ -70,16 +70,14 @@ def mask_nodata(da: xr.DataArray, nodata: float | None) -> xr.DataArray:
     return da if nodata is None else da.where(da != nodata)
 
 
-def load_stack(
-    items, bounds: tuple[int, int, int, int], crs: str, resolution: int
-) -> xr.DataArray:
+def load_stack(items, bounds: tuple[int, int, int, int], crs: str, resolution: int) -> xr.DataArray:
     """Returns an array (time, band, y, x) of VH and VV, clipped to bounds, in the given CRS."""
 
     # GeoBox is the grid definition (90m x 90m window)
     geobox = GeoBox.from_bbox(bounds, crs, resolution=resolution)
     # Take the grid above and pin it to the pixels. chunk{} => keeps load lazy
     ds = odc.stac.load(items, bands=["vh", "vv"], geobox=geobox, chunks={}, dtype="float32")
-    
+
     da = ds.to_dataarray("band").transpose("time", "band", "y", "x")
     # Planetary Computer fills areas outside each scene with nodata (-32768), not NaN.
     return mask_nodata(da, ds["vv"].attrs.get("nodata"))
@@ -108,9 +106,10 @@ def get_sentinel_data(latlong: str, cfg: Config, window_size: int | None = None)
     if len(items) == 0:
         raise LookupError(
             f"No Sentinel-1 scenes found for {latlong} in {cfg.time.start}..{cfg.time.end}"
-            )
-    
+        )
+
     return load_stack(items, bounds, cfg.aoi.crs, cfg.tiling.resolution_m)
+
 
 def get_sentinel_area(bounds: tuple[int, int, int, int], cfg: Config) -> xr.DataArray:
     """Sentinel-1 VH/VV stack for a tile/group of points specified by UTM bounds
@@ -119,5 +118,5 @@ def get_sentinel_area(bounds: tuple[int, int, int, int], cfg: Config) -> xr.Data
     items = search_items(cfg.stac, bounds_to_geojson(bounds, cfg.aoi.crs), cfg.time)
     if len(items) == 0:
         raise LookupError(f"No Sentinel-1 scenes found for bounds {bounds}")
-    
+
     return load_stack(items, bounds, cfg.aoi.crs, cfg.tiling.resolution_m)

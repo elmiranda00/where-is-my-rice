@@ -1,11 +1,12 @@
-import pytest
-from pyproj import Transformer
 import numpy as np
+import pytest
 import xarray as xr
+from pyproj import Transformer
 
-from ricemap.fetch import parse_latlong, point_window, mask_nodata
+from ricemap.fetch import mask_nodata, parse_latlong, point_window
 
 LATLONG = "(10.323727047081501, 105.2516346045924)"
+
 
 def test_parse_latlong():
     assert parse_latlong(LATLONG) == (10.323727047081501, 105.2516346045924)
@@ -41,4 +42,3 @@ def test_mask_nodata_turns_the_fill_value_into_nan():
     assert np.isnan(out.values[1])
     assert np.allclose(out.values[[0, 2]], [0.2, 0.05])
     assert mask_nodata(da, None) is da
-

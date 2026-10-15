@@ -63,6 +63,7 @@ def write_cog(da: xr.DataArray, crs: str, dest: str) -> None:
         # Copy the file to the storage location.
         storage.upload(local, dest)
 
+
 def empty_tile(tile: Tile, cfg: Config) -> xr.DataArray:
     """To handle tiles with no data {(y, x) uint8 map of the tile with every pixel NODATA}"""
     res = cfg.tiling.resolution_m
@@ -73,7 +74,6 @@ def empty_tile(tile: Tile, cfg: Config) -> xr.DataArray:
     return xr.DataArray(data, coords={"y": ys, "x": xs}, dims=("y", "x"))
 
 
-
 def predict_tile(tile: Tile, cfg: Config, bundle: dict) -> str | None:
     """Classify one tile and write its COG. Returns the output path, or None if the output
     already existed (tile jobs are idempotent)."""
@@ -82,19 +82,20 @@ def predict_tile(tile: Tile, cfg: Config, bundle: dict) -> str | None:
     if storage.exists(dest):
         return None
 
-    # Make the tile area larger on each side (for the speckle filter which needs the neighbor pixels)
+    # Make the tile area larger on each side
+    # (for the speckle filter which needs the neighbor pixels)
     pad = cfg.speckle_window // 2
     margin = pad * cfg.tiling.resolution_m
     buffered = (tile.minx - margin, tile.miny - margin, tile.maxx + margin, tile.maxy + margin)
-    
+
     # Load the Sentinel-1 data and calculate the features.
     try:
         stack = get_sentinel_area(buffered, cfg)
     except LookupError:
-    # No Sentinel-1 scenes (for example open sea): write an all-nodata tile.
+        # No Sentinel-1 scenes (for example open sea): write an all-nodata tile.
         write_cog(empty_tile(tile, cfg), cfg.aoi.crs, dest)
         return dest
-    
+
     feats = compute_features(stack, cfg)
 
     # Remove the extra pixels from each side to get the tile area again.

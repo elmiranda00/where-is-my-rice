@@ -26,8 +26,8 @@ class Tile:
 def aoi_bounds_utm(aoi: AOI) -> tuple[float, float, float, float]:
     """Project the lon/lat bbox into UTM CRS and return its UTM envelope."""
     to_utm = Transformer.from_crs("EPSG:4326", aoi.crs, always_xy=True)
-    
-    # Add 21 points along each edge before projecting 
+
+    # Add 21 points along each edge before projecting
     # (singe a lon/lat rectangle is not a rectangle in UTM) - avoids bulging edges
     return to_utm.transform_bounds(*aoi.bbox, densify_pts=21)
 

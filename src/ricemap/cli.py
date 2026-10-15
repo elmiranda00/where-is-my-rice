@@ -34,6 +34,7 @@ def list_tiles(config: ConfigOption = DEFAULT_CONFIG) -> None:
         typer.echo(f"{i}\t{t.tile_id}\t{t.minx}\t{t.miny}\t{t.maxx}\t{t.maxy}")
     typer.echo(f"{len(tiles)} tiles of {cfg.tiling.tile_size_m} m in {cfg.aoi.crs}", err=True)
 
+
 @app.command()
 def train(
     config: ConfigOption = DEFAULT_CONFIG,
