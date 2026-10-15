@@ -18,6 +18,7 @@ data/raw/
 *.pmtiles
 !web/rice.pmtiles
 *.joblib
+*.pgw
 
 # Terraform
 infra/.terraform/
