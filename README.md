@@ -11,7 +11,7 @@ A rice / non-rice map of the Mekong Delta in Vietnam, mapped at a 10 m resolutio
 
 1. **Training data.** 600 labelled points (300 rice, 300 non-rice) in and around a single province in the delta from 2020 (An Giang, about 9.9–10.5° N, 104.9–105.8° E)
 2. **Satellite data.** Sentinel-1 images for 2020 via the Microsoft Planetary Computer STAC API. (Radar sees through clouds and picks up backscatter pattern from flooded rice fields over seasons)
-3. **Feature Engineering.** Consider the median value over 12-day windows (taken as a proxy for a phase in the rice growing process) -> Apply a 9 × 9 median filter over this composite to reduce the speckle effect -> four bands per pixel (VV, VH, VH/VV ratio, radar vegetation index RVI = 4·VH / (VV + VH)) > calcualte five statistics (mean, std. dev. min, max, range) for each band across the year i.e. across the windows.
+3. **Feature Engineering.** Consider the median value over 12-day windows (taken as a proxy for a phase in the rice growing process) -> Apply a 9 × 9 median filter over this composite to reduce the speckle effect -> four bands per pixel (VV, VH, VH/VV ratio, radar vegetation index RVI = 4·VH / (VV + VH)) > calculate five statistics (mean, std. dev. min, max, range) for each band across the year i.e. across the windows.
 4. **Model.** Support vector machine (SVM) with RBF kernel and spatial cross-validation to ensure the model is always tested on unseen sites
 5. **Scaling up the model for the entire delta** The Delta is split into 840 tiles of 10 × 10 km. Each tile is one task in a Cloud Run Job on Google Cloud. Each task writes a Cloud Optimized GeoTIFF (COG) to Cloud Storage.
 6. **Compiling and publishing the map** The tiles are joined into one mosaic and clipped to the province boundaries, then converted to PMTiles for the web map. The rice area detected per province from my model is compared with figures from Phan et al. (2024), which gives rice land per province for 2022 ([see citation](#data-sources-and-licences)).
@@ -24,9 +24,9 @@ A rice / non-rice map of the Mekong Delta in Vietnam, mapped at a 10 m resolutio
 
 *(a) Rice fields detected from my work; considers all rice-systems together (i.e. mono, double and triple). Province Boundaries using [GADM 4.1](#data-sources-and-licences)*
 
-*(b) Map of land use from [Phan, K.D. et al. (2024)](https://hdl.handle.net/10568/151791). The report uses clustering and Random Forest to identify different land use ares. For rice, they display a split based cropping systems; compare total rice extent (yellow + orange shaded areas), not individual classes.*
+*(b) Map of land use from [Phan, K.D. et al. (2024)](https://hdl.handle.net/10568/151791). The report uses clustering and Random Forest to identify different land use areas. For rice, they display a split based cropping system; compare total rice extent (yellow + orange shaded areas), not individual classes.*
 
-For a province-by-province comparison of rice area, see [Results](#rice-area-per-province-map-2020-vs-reference-report-2022).
+For a province-by-province comparison of rice area, see [Results](#rice-area-per-province-my-map-based-on-2020-training-data-vs-reference-report-2022).
 
 
 ## Results
@@ -35,7 +35,12 @@ For a province-by-province comparison of rice area, see [Results](#rice-area-per
 
 | Accuracy | Precision | Recall | F1 | ROC AUC |
 |---|---|---|---|---|
-| 0.83 | 0.75 | 1.00 | 0.85 | 0.99 |
+| 0.83 | 0.75 | 1.00 | 0.85 | 0.99 |\
+
+Note on the model's shortcomings: Nearly all errors are non-rice called rice (precision/recall indicates errors lean towards false positives). The cross-validation design in the code holds out whole sites<sup>1</sup>, so these are errors on sites the model never saw. The high ROC AUC suggests the model ranks pixels well, but its rice/non-rice cut-off does not carry over to new sites. 
+
+<sup>1</sup> *A "site" is a cluster of labelled points less than 3 km apart (we have 7 sites in total within the labelled data). Each point is assigned a Site ID for training, so that in each cross-validation fold, every point of a site is either in training or in testing, never split between the two. The model is therefore always tested on locations it never trained on.*
+
 
 ### Rice area per province: my map (based on 2020 training data) vs reference report (2022)
 
@@ -63,14 +68,14 @@ The map finds 12.5% less rice than the report over the whole Delta. Seven provin
 
 ## Limitations
 
-- **Small training area.** All 600 trianing labels come from 7 sites near An Giang spanning about 3,000 km² if we draw around all points; The validation scores only describe that area. The full delta map covers 39,700 km², which is about 13 times larger, so roughly 92% of the mapped area lies outside the labelled area.
-- **Aquaculture.** Shrimp ponds might have been detected as rice crop by our model (as they are usually flooded, might lead to a similar backscatter in certain times of the year) Not enough training data to distinctly classify them corectly.
+- **Small training area.** All 600 training labels come from 7 sites near An Giang spanning about 3,000 km² if we draw around all points. The validation scores only describe that area. The full delta map covers 39,700 km², which is about 13 times larger, so roughly 92% of the mapped area lies outside the labelled area.
+- **Aquaculture.** Shrimp ponds might have been detected as rice by our model (as they are usually flooded, might lead to a similar backscatter in certain times of the year) Not enough training data to distinctly classify them corectly.
 - **Different years.** The model builds a map based on 2020 training data; the reference figures are for 2022.
 
 
 ### Bug found and fixed: no-data gaps
 
-The first run left large gaps in the mapped area (about 354,000 ha i.e. 9% of the Delta without a prediction) The cause: Planetary
+The first run left large gaps in the mapped area (about 354,000 ha i.e. 9% of the Delta without a prediction). The cause: Planetary
 Computer fills the area outside each radar scene with −32768, not with "missing" (NaN). The composites mixed −32768 with real values, and features became invalid. Fix: Applied a fill value for -32768 at the time of data loading.
 
 ## If you'd like to run it yourself
@@ -83,7 +88,49 @@ uv run ricemap train                            # training table, CV, model.jobl
 uv run ricemap predict-tile --tile-id <id>      # one tile, locally
 ```
 Set `STORAGE_URI=gs://<bucket>` to read and write in Cloud Storage instead of `./outputs`.
-Cloud setup: see `infra/` (copy `terraform.tfvars.example` to `terraform.tfvars`).
+
+## Deploy to Google Cloud
+
+Needs `gcloud` (logged in), Docker and Terraform. Commands are for PowerShell.
+
+```powershell
+# 0. One-time setup
+cp infra/terraform.tfvars.example infra/terraform.tfvars    # then fill in project_id, billing_account
+gcloud auth application-default login
+cd infra; terraform init; cd ..
+
+$PROJECT = "<project-id>"
+$REGION  = "europe-west4"
+$TAG     = git rev-parse --short HEAD   # image tag = current commit
+$IMAGE   = "$REGION-docker.pkg.dev/$PROJECT/ricemap/ricemap:$TAG"
+
+# 1. Create the registry
+cd infra; terraform apply -target="google_artifact_registry_repository.images"; cd ..
+
+# 2. Build and push the docker image
+gcloud auth configure-docker "$REGION-docker.pkg.dev"
+docker build --platform linux/amd64 -t $IMAGE .
+docker push $IMAGE
+
+# 3. Create or update the bucket, service account, budget and job, pointing at the new image
+cd infra; terraform apply -var "image_tag=$TAG"; cd ..
+
+# 4. Train and upload the model to the bucket (model.joblib is read from there)
+$env:STORAGE_URI = "gs://$PROJECT-outputs"
+uv run ricemap train
+
+# 5. Run all tiles (one task per tile; existing tiles are skipped)
+gcloud run jobs execute ricemap-predict --region $REGION
+
+# 6. Mosaic, PMTiles and province stats
+uv run ricemap publish
+
+# 7. Remove the cloud resources
+cd infra; terraform destroy; cd ..
+```
+
+`task_count` and `parallelism` are set in `infra/infra.tf` (840 tasks, 10 in parallel for the full run).
+
 
 ## Data sources and licences
 
