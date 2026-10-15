@@ -1,4 +1,6 @@
 # Rice Mapping using Satellite Images
+[![CI](https://github.com/elmiranda00/where-is-my-rice/actions/workflows/ci.yml/badge.svg)](https://github.com/elmiranda00/where-is-my-rice/actions/workflows/ci.yml)
+
 
 A rice / non-rice map of the Mekong Delta in Vietnam, mapped at a 10 m resolution, using Sentinel-1 radar data and an SVM classifier.
 
